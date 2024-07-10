@@ -4,13 +4,9 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 import time
 from selenium.webdriver.common.by import By
-
-paths = r"C:\Users\chand\Downloads\chromedriver-win32\chromedriver-win32\chromedriver.exe"
-os.environ["PATH"] += os.pathsep + os.path.dirname(paths)
-chrome_options=Options()
-chrome_options.add_experimental_option("detach", True)
-driver = webdriver.Chrome(options=chrome_options)
-time.sleep(3)
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 driver.get("https://labour.gov.in/")
 
 original_window = driver.current_window_handle
