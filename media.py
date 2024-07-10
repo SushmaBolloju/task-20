@@ -1,87 +1,65 @@
 import os
 import requests
 from selenium import webdriver
-from selenium.webdriver import ActionChains
-from selenium.webdriver.chrome.options import Options
-import time
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
-paths = r"C:\Users\chand\Downloads\chromedriver-win32\chromedriver-win32\chromedriver.exe"
-os.environ["PATH"] += os.pathsep + os.path.dirname(paths)
-chrome_options=Options()
-chrome_options.add_experimental_option("detach", True)
-driver = webdriver.Chrome(options=chrome_options)
-time.sleep(3)
+import time
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+#open first window
 driver.get("https://labour.gov.in/")
 
-original_window = driver.current_window_handle
-driver.maximize_window()
+firstwindow = driver.window_handles[0]
+#sleep for 2 seconds
 time.sleep(3)
-media_element = driver.find_element(By.XPATH,'//*[@id="nav"]/li[10]/a')
-
-action = ActionChains(driver)
-# Move the cursor to the element
-action.move_to_element(media_element).perform()
-time.sleep(4)
-
-press_releases = driver.find_element(By.XPATH,"/html/body/nav/div/div/div/ul/li[10]/ul/li/a")
-press_releases.click()
-time.sleep(4)
-
-more_info = driver.find_element(By.XPATH, '//*[@id="fontSize"]/div/div/div[3]/div[2]/div[1]/div/div/div/div/div/div/div/div/div/p/b/a')
-more_info.click()
-time.sleep(4)
-
-photo_gallery = driver.find_element(By.XPATH, '//*[@id="block-block-88"]/ul/li[2]/strong/a')
-photo_gallery.click()
-time.sleep(4)
+try:
+    # Navigate to the "Media" menu and then to "Photo Gallery"
+    media_menu = driver.find_element(By.LINK_TEXT, "Media")
+    #click on the media_menu
+    media_menu.click()
+    #navigate to the allpressrelease
+    allpreseerelease = driver.find_element(By.LINK_TEXT,"Click for more info of Press Releases")
+    #click on the allpressrelease
+    allpreseerelease.click()
+    #navigate to the photo-gallery_menu
+    photo_gallery_menu = driver.find_element(By.LINK_TEXT, "Photo Gallery")
+    #click on the photo_gallery_menu
+    photo_gallery_menu.click()
+    #sleep 5 seconds
+    time.sleep(5)
 
 
-photo_gallery_window = driver.window_handles[1]
-driver.switch_to.window(photo_gallery_window)
+    #window_handles
+    driver.switch_to.window(driver.window_handles[1])
+    firstright = driver.window_handles[-1]
+    #navigate to new window
+    driver.switch_to.window(firstright)
+    #sleep for 2 sec
+    time.sleep(2)
 
+    wait = WebDriverWait(driver, 20)
+    wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".views-field-field-image img")))
 
-# Create a folder
-folder_name = "photo_gallery"
-download_dir = os.path.join(os.getcwd(), folder_name)
-os.makedirs(download_dir, exist_ok=True)
+    # Create a folder to store the photos
+    photo_folder = r"C:\Users\chand\OneDrive\Desktop\photo_folder"
+    if not os.path.exists(photo_folder):
+        os.makedirs(photo_folder)
 
-table = driver.find_element(By.XPATH , '//*[@id="fontSize"]/div/div/div[3]/div[2]/div[1]/div/div/div[2]/div[2]/table')
+    # Download the first 10 photos from the photo gallery
+    photos = driver.find_elements(By.CSS_SELECTOR, ".views-field-field-image img")[:10]
+    for index, photo in enumerate(photos):
+        photo_url = photo.get_attribute('src')
+        if not photo_url.startswith('http'):
+            photo_url = "https://labour.gov.in" + photo_url  # Ensure the URL is absolute
+        photo_response = requests.get(photo_url)
+        with open(os.path.join(photo_folder, f"photo_{index + 1}.jpg"), 'wb') as file:
+            file.write(photo_response.content)
+        print(f"Downloaded photo {index + 1}")
 
-# Get all rows of the table
-rows = table.find_elements(By.TAG_NAME, 'tr')
-count = 0
-for row in rows:
-    if count >= 10:
-        break
-    # Get all columns of the current row
-    columns = row.find_elements(By.TAG_NAME, 'td')
-    # Iterate over each column in the row
-    for column in columns:
-        if count >= 10:
-            break
-        try :
-            # Access the text content of the column
-            img_element = column.find_element(By.TAG_NAME,'img')
-            img_src = img_element.get_attribute('src')
-            img_title = img_element.get_attribute('title')
-            print("Downloading image {}", img_title)
-            # Use requests to get the image data
-            response = requests.get(img_src)
-            # Check if the request was successful
-            if response.status_code == 200:
-                # Save the image data to a file
-                with open(f"{folder_name}/{img_title}.jpg", "wb") as f:
-                    f.write(response.content)
-                print("Image downloaded successfully.")
-                count += 1
-            else:
-                print("Failed to download the image.")
-            time.sleep(5)
-        except :
-            print("Failed to download the image.")
-# Close the browser
-driver.quit()
-
+        print("Photos downloaded successfully.")
+finally:
+    driver.quit()
