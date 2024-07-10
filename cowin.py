@@ -3,13 +3,10 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
-paths = r"C:\Users\chand\Downloads\chromedriver-win32\chromedriver-win32\chromedriver.exe"
-os.environ["PATH"] += os.pathsep + os.path.dirname(paths)
-chrome_options=Options()
-chrome_options.add_experimental_option("detach", True)
-driver = webdriver.Chrome(options=chrome_options)
-time.sleep(3)
 driver.get("https://www.cowin.gov.in/")
 original_window = driver.current_window_handle
 driver.maximize_window()
